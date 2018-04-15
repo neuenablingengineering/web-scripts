@@ -1,0 +1,48 @@
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>append demo</title>
+  <style>
+  p {
+    background: yellow;
+  }
+  </style>
+  <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
+  <script src="airtable.browser.js"></script>
+</head>
+<body>
+ 
+
+ 
+<script>
+$( "p" ).append( "<strong>Hello</strong>" );    
+
+var Airtable = require('airtable');
+var base = new Airtable({ apiKey: 'keyZss6qI3y5Lti99' }).base('appFQ0WoH5UsblMxd');
+
+base('Projects').select({
+        maxRecords: 3,
+        view: 'Main View',
+    }).eachPage(function page(records, fetchNextPage) {
+        records.forEach(function(record) {
+            console.log('Retrieved ', record.get('Title'));
+            var $artistInfo = $('<div>');
+            $artistInfo.append($('<h3>').text(record.get('Title')));
+            $artistInfo.append($('<div>').text(record.get('Title')));
+            $( "section" ).append($artistInfo);
+        });
+        fetchNextPage();
+    }, function done(error) {
+        if (error) {
+            console.log('An error occured!', error);
+        }
+    });
+
+</script>
+ <p>I would like to say: </p>
+ <section id="content">
+     Beginning of content section.
+ </section>
+</body>
+</html>

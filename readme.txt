@@ -1,4 +1,3 @@
-# web-scripts
 Note: all scripts are saved within barebones HTML files for ease of testing during development. To install on our website, some minor modifications need to be made. Start by navigating to the script injection interface in SquareSpace:
     1. Login to our SquareSpace account and open up enablingengineering.org 
     2. Find the target page in the sidebar

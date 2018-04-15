@@ -1,0 +1,243 @@
+<html>
+    <body>   
+        <div class="main-content-wrapper"></div>
+        <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
+        <!--<script src="https://d3js.org/d3.v4.min.js"></script>-->
+        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/numeric/1.2.6/numeric.min.js"></script>
+        <script src="airtable.browser.js"></script>
+
+    <!--/////////////////////////////////////////////////////////////////////////////////////////////////////////-->
+    <!--/////////////////////////////////////////////////////////////////////////////////////////////////////////-->
+
+        <script> 
+
+            //new Airtable object
+            //authenticated using API key generated for the enablingengineering@gmail.com account on our Airtable team
+            //represents the "Projects" base, as indicated by the key in base().
+            var Airtable = require('airtable');
+            var base = new Airtable({ apiKey: 'keyZss6qI3y5Lti99' }).base('appFQ0WoH5UsblMxd');
+
+            //this section produces the bar and/or pie charts that display cost of each project
+
+            var allProjectsCost = 0;
+            var projectCosts = [];
+            var projectNames = [];
+
+            base('Projects').select({
+                    view: 'Active Projects',
+                    maxRecords: 100,
+                    sort: [{field: 'Cost to Date', direction: 'desc'}],
+                }).eachPage(function page(records, fetchNextPage) { // This function (`page`) will get called for each page of records.
+
+                    records.forEach(function(record) { 
+                        if (record.get('Title') != 'Lab Management') {
+                            
+                            console.log('Retrieved', record.get('Title')); 
+
+                            var totalCost = record.get('Cost to Date');
+                            if(totalCost != '0') {
+                                projectCosts.push(Number(totalCost.toFixed(2)));
+                                projectNames.push(record.get('Title') + ' ($' + totalCost.toFixed(0) + ')');
+                                console.log(projectCosts.length);
+                                allProjectsCost += totalCost;
+                            }
+
+                            var $projectInfo = $('<div>');
+                            if (totalCost) {$projectInfo.append($('<ul>').text('Total cost: $' + totalCost.toFixed(2)))}
+                            else { $projectInfo.append($('<ul>').text('Total Cost: $0'))}
+                        }    
+                    }); fetchNextPage();
+                        
+                        var pieData = [{ 
+                            values: projectCosts, 
+                            labels: projectNames,
+                            type: 'pie'
+                        }];
+
+                        var barData = [{
+                            x: projectNames, 
+                            y: projectCosts,
+                            type: 'bar'
+                        }];
+                        
+                        var layout = {
+                            title: 'Total Cost of All Active Projects: $' + allProjectsCost.toFixed(2),
+                            //height: 600,
+                            //width: 600
+                        };
+
+                        //var $plot = $('<div id="myDiv">');
+                        //$(".main-content-wrapper").append($plot);
+                        //Plotly.newPlot('myDiv', pieData, layout);
+                        var $plot2 = $('<div id="myDiv2" align="middle">'); //for bar chart of project spending
+                        $(".main-content-wrapper").append($plot2);
+                        var $plot3 = $('<div id="myDiv3" align="middle">'); //for spending breakdown pie charts created below
+                        $(".main-content-wrapper").prepend($plot3);
+                        Plotly.newPlot('myDiv2', barData, layout);
+
+                    }, function done(err) {if (err) {console.error(err); return}});
+
+            //this section produces the pie chart displaying spending breakdown by transaction type
+
+            var groupTransactions = []; var groupTransactions2 = []; var groupTransactions3 = [];
+            var projectTransactions = []; var projectTransactions2 = []; var projectTransactions3 = [];
+            var payrollTransactions = []; var payrollTransactions2 = []; var payrollTransactions3 = [];
+            
+            var today = new Date();
+            var year = today.getFullYear(); //returns 4 digit year
+            var month = today.getMonth(); //returns month 0-11
+            if (month < 7) {
+                var cutoff = new Date('07/31/' + (year - 1).toString())
+                var cutoff2 = new Date('07/31/' + (year - 2).toString())
+                var cutoff3 = new Date('07/31/' + (year - 3).toString())
+            } else {
+                var cutoff = new Date('07/31/' + year.toString())
+                var cutoff2 = new Date('07/31/' + (year - 1).toString())
+                var cutoff3 = new Date('07/31/' + (year - 2).toString())
+            }
+
+            console.log('Cutoff Date: ' + cutoff);
+
+            base('Transactions').select({
+                    view: 'Main View',
+                    sort: [{field: 'Date', direction: 'desc'}]
+                }).eachPage(function page(records, fetchNextPage) {
+
+                    records.forEach(function(record) {
+                        var transactionDate = new Date(record.get('Date'));
+                        console.log(transactionDate);
+                        if (cutoff.getTime() < transactionDate.getTime()) {
+                            if(record.get('Category') == 'Group') {groupTransactions.push(record.get('Amount'));} 
+                            else if(record.get('Category') == 'Project') {projectTransactions.push(record.get('Amount'));} 
+                            else if(record.get('Category') == 'Payroll') {payrollTransactions.push(record.get('Amount'));}
+                        } else if (cutoff2.getTime() < transactionDate.getTime()) {
+                            console.log('Entered cutoff 2 condition');
+                            if(record.get('Category') == 'Group') {groupTransactions2.push(record.get('Amount'));} 
+                            else if(record.get('Category') == 'Project') {projectTransactions2.push(record.get('Amount'));} 
+                            else if(record.get('Category') == 'Payroll') {payrollTransactions2.push(record.get('Amount'));}
+                        } else if (cutoff3.getTime() < transactionDate.getTime()) {
+                            if(record.get('Category') == 'Group') {groupTransactions3.push(record.get('Amount'));} 
+                            else if(record.get('Category') == 'Project') {projectTransactions3.push(record.get('Amount'));} 
+                            else if(record.get('Category') == 'Payroll') {payrollTransactions3.push(record.get('Amount'));}
+                        }
+                        
+                    }); fetchNextPage();
+
+                    var totalGroup = 0; var totalGroup2 = 0; var totalGroup3 = 0;
+                    var totalProject = 0; var totalProject2 = 0; var totalProject3 = 0;
+                    var totalPayroll = 0; var totalPayroll2 = 0; var totalPayroll3 = 0;
+
+                    for (var n = 0; n < groupTransactions.length; n++) {totalGroup += groupTransactions[n] - 2*groupTransactions[n]}
+                    for (var n = 0; n < groupTransactions2.length; n++) {totalGroup2 += groupTransactions2[n] - 2*groupTransactions2[n]}
+                    for (var n = 0; n < groupTransactions3.length; n++) {totalGroup3 += groupTransactions3[n] - 2*groupTransactions3[n]}
+
+                    for (var n = 0; n < projectTransactions.length; n++) {totalProject += projectTransactions[n] - 2*projectTransactions[n]}
+                    for (var n = 0; n < projectTransactions2.length; n++) {totalProject2 += projectTransactions2[n] - 2*projectTransactions2[n]}
+                    for (var n = 0; n < projectTransactions3.length; n++) {totalProject3 += projectTransactions3[n] - 2*projectTransactions3[n]}
+
+                    for (var n = 0; n < payrollTransactions.length; n++) {totalPayroll += payrollTransactions[n] - 2*payrollTransactions[n]}
+                    for (var n = 0; n < payrollTransactions2.length; n++) {totalPayroll2 += payrollTransactions2[n] - 2*payrollTransactions2[n]}
+                    for (var n = 0; n < payrollTransactions3.length; n++) {totalPayroll3 += payrollTransactions3[n] - 2*payrollTransactions3[n]}
+
+                    totalGroup = totalGroup.toFixed(2); totalGroup2 = totalGroup2.toFixed(2); totalGroup3 = totalGroup3.toFixed(2); 
+                    totalProject = totalProject.toFixed(2); totalProject2 = totalProject2.toFixed(2); totalProject3 = totalProject3.toFixed(2); 
+                    totalPayroll = totalPayroll.toFixed(2); totalPayroll2 = totalPayroll2.toFixed(2); totalPayroll3 = totalPayroll3.toFixed(2);
+
+                    console.log(groupTransactions); console.log(totalGroup);
+                    console.log(groupTransactions2); console.log(totalGroup2);
+                    console.log(groupTransactions3); console.log(totalGroup3);
+                    console.log(projectTransactions); console.log(totalProject);
+                    console.log(projectTransactions2); console.log(totalProject2);
+                    console.log(projectTransactions3); console.log(totalProject3);
+                    console.log(payrollTransactions); console.log(totalPayroll);
+                    console.log(payrollTransactions2); console.log(totalPayroll2);
+                    console.log(payrollTransactions3); console.log(totalPayroll3);
+
+                    var pieLabels = ['Group', 'Projects', 'Payroll'];
+                    var name = cutoff.getFullYear().toString() + '-' + (cutoff.getFullYear() + 1).toString().substring(2);
+                    var name2 = cutoff2.getFullYear().toString() + '-' + (cutoff2.getFullYear() + 1).toString().substring(2);
+                    var name3 = cutoff3.getFullYear().toString() + '-' + (cutoff3.getFullYear() + 1).toString().substring(2);
+                    //var colors = ['rgba(100,175,100,0.7)', 'rgba(100,100,175,0.7)', 'rgba(100,150,175,0.7)']
+                    var colors = ['rgba(34,152,212,0.7)', 'rgba(55,182,106,0.7)', 'rgba(206,124,215,0.7)']
+
+                    var data3 = [{
+                        values: [totalGroup, totalProject, totalPayroll],
+                        labels: pieLabels,
+                        type: 'pie',
+                        marker: {
+                            colors: colors,
+                            line: {width: '4', color: 'rgb(255,255,255)'}
+                            },
+                        textinfo: 'label+percent',
+                        domain: {x: [0.1,0.9], y: [0.15,1]},
+                        name: name,
+                        hoverinfo: 'label+percent+value',
+                        hole: 0.4,
+                    }, {
+                        values: [totalGroup2, totalProject2, totalPayroll2],
+                        labels: pieLabels,
+                        type: 'pie',
+                        marker: {
+                            colors: colors,
+                            line: {width: '2', color: 'rgb(255,255,255)'}
+                            },
+                        textinfo: 'none',
+                        domain: {x: [0,0.25], y: [0,0.3]},
+                        name: name2,
+                        hoverinfo: 'label+percent+value',
+                        hole: 0.4,
+                    }, {
+                        values: [totalGroup3, totalProject3, totalPayroll3],
+                        labels: pieLabels,
+                        type: 'pie',
+                        marker: {
+                            colors: colors,
+                            line: {width: '2', color: 'rgb(255,255,255)'}
+                            },
+                        textinfo: 'none',
+                        domain: {x: [0.75,1], y: [0,0.3]},
+                        name: name3,
+                        hoverinfo: 'label+percent+value',
+                        hole: 0.4,
+                    }]; 
+
+                    var layout3 = {
+                        title: 'Annual Spending Breakdown',
+                        showlegend: false,
+                        annotations: [{
+                            font: {size: 16},
+                            showarrow: false,
+                            text: name,
+                            x: 0.5,
+                            y: 0.575
+                        }, {
+                            font: {size: 11},
+                            showarrow: false,
+                            text: name2,
+                            x: 0.062,
+                            y: 0.285
+                        }, {
+                            font: {size: 11},
+                            showarrow: false,
+                            text: name3,
+                            x: 0.9385,
+                            y: 0.285
+                        }],
+                        //height: 600,
+                        //width: 600
+                    };
+
+                    //var $plot3 = $('<div id="myDiv3" align="middle">'); //for spending breakdown pie charts created below
+                    //$(".main-content-wrapper").append($plot3);
+                    Plotly.newPlot('myDiv3', data3, layout3);
+
+                }, function done(err) {if (err) {console.error(err); return}});
+
+        </script>
+
+    <!--/////////////////////////////////////////////////////////////////////////////////////////////////////////-->
+    <!--/////////////////////////////////////////////////////////////////////////////////////////////////////////-->
+
+    </body>
+</html>

@@ -1,0 +1,117 @@
+<html>
+    <body>   
+        <div class="main-content-wrapper"></div>
+        <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
+        <script src="airtable.browser.js"></script>
+        <!-- <script src="/s/airtablebrowser.js"></script> -->
+
+    <!--/////////////////////////////////////////////////////////////////////////////////////////////////////////-->
+    <!--/////////////////////////////////////////////////////////////////////////////////////////////////////////-->
+
+        <script> 
+
+            //new Airtable object
+            //authenticated using API key generated for the enablingengineering@gmail.com account on our Airtable team
+            //represents the "Projects" base, as indicated by the key in base().
+            var Airtable = require('airtable');
+            var base = new Airtable({ apiKey: 'keyZss6qI3y5Lti99' }).base('appFQ0WoH5UsblMxd');
+
+            var allStudents = 0;
+            var allProjectsCost = 0;
+
+            base('Projects').select({
+                    view: 'Active Projects',
+                    maxRecords: 100,
+                    sort: [{field: 'Title', direction: 'asc'}],
+                }).eachPage(function page(records, fetchNextPage) { // This function (`page`) will get called for each page of records.
+
+                    records.forEach(function(record) { 
+                        if (record.get('Title') != 'Lab Management') {
+                            
+                            console.log('Retrieved', record.get('Title')); 
+                            
+                            var members = [];
+                            var memberIDs = record.get('Students');
+                            if (!memberIDs) {memberIDs = 'No members listed'}
+                            var purchaseIDs = record.get('Purchases');
+                            var totalCost = record.get('Cost to Date');
+                            allStudents += memberIDs.length;
+                            allProjectsCost += totalCost;
+
+                            var $projectInfo = $('<div>');
+                            $projectInfo.append($('<h3>').text(record.get('Title')));
+
+                            var n = 0;
+                            function getNames() {
+                                if (n == 0) {memberIDs = record.get('Students')}
+                                if (n < memberIDs.length) {
+                                    base('Students').find(memberIDs[n], function(err, record2) {
+                                        if (err) {members[k] = 'record not found'}
+                                        members[n] = record2.fields.Name;
+                                        $projectInfo.append($('<h5>').text(members[n]))
+                                        console.log('members[n]: ' + members[n]); console.log('members: ' + members);
+                                        n++;
+                                        getNames();
+                                    });
+                                }
+                            }
+                            
+                            //getNames();
+
+                            //initialize counter m, tracker numUC for number of upperclassmen, and a date
+                            //currentYear will store the year of first semester (i.e. for 2016-17 academic year, always equals 2016)
+                            var m = 0; var numUC = 0; var date = new Date();
+                            if (date.getMonth() < 6) {var currentYear = date.getFullYear() - 1}
+                            else {var currentYear = date.getFullYear()}
+                            //function to check how many years each student is from graduating (if <= 3, numUC +1)
+                            function countUC() {
+                                //console.log(memberIDs); console.log('numUC: ' + numUC);
+                                if (m < memberIDs.length) {
+                                    base('Students').find(memberIDs[m], function(err, record2) {
+                                        if (err) {console.log('record not found')}
+                                        var yearsToGrad = Number(record2.get('Grad Year')) - currentYear;
+                                        console.log('Grad Year: ' + record2.get('Grad Year'));
+                                        console.log('Years to Grad: ' + yearsToGrad)
+                                        if (yearsToGrad <= 3) {numUC++} 
+                                        m++;
+                                        countUC();
+                                    });
+                                } else {$projectInfo.append($('<ul>').text('Number of upperclassmen: ' + numUC))}
+                                return numUC;
+                            }
+                            
+                            
+                            countUC();
+
+                            if (memberIDs) { $projectInfo.append($('<ul>').text('Number of members: ' + memberIDs.length)) }
+                            else { $projectInfo.append($('<ul>').text('Number of members: 0')) }
+                            if (purchaseIDs) { $projectInfo.append($('<ul>').text('Number of purchases: ' + purchaseIDs.length)) }
+                            else { $projectInfo.append($('<ul>').text('Number of purchases: 0')) }
+                            if (totalCost) {$projectInfo.append($('<ul>').text('Total cost: $' + totalCost.toFixed(2)))}
+                            else { $projectInfo.append($('<ul>').text('Total Cost: $0'))}
+                            console.log('allStudents: ' + allStudents)
+
+                            $( ".main-content-wrapper" ).append($projectInfo);
+                        }    
+                    });
+
+                        console.log('allStudents: ' + allStudents)
+                        console.log('allProjectsCost: ' + allProjectsCost)
+                        $(".main-content-wrapper").prepend($('<h4>').text('Total Cost of All Active Projects: ' + allProjectsCost.toFixed(2)))
+                        $(".main-content-wrapper").prepend($('<h4>').text('Total Number of Students Involved: ' + allStudents))
+
+                        fetchNextPage();
+
+                    }, function done(err) {if (err) { console.error(err); return; } 
+                });
+                    
+                    
+
+
+        </script>
+
+    <!--/////////////////////////////////////////////////////////////////////////////////////////////////////////-->
+    <!--/////////////////////////////////////////////////////////////////////////////////////////////////////////-->
+
+    </body>
+</html>

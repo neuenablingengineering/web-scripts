@@ -1,0 +1,70 @@
+<html>
+        <body>   
+        <div class="main-content-wrapper"></div>
+        <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
+        <script src="airtable.browser.js"></script>
+
+    <!--/////////////////////////////////////////////////////////////////////////////////////////////////////////-->
+    <!--/////////////////////////////////////////////////////////////////////////////////////////////////////////-->
+
+        <script> 
+
+            //new Airtable object
+            //authenticated using API key generated for the enablingengineering@gmail.com account on our Airtable team
+            //represents the "Projects" base, as indicated by the key in base().
+            var Airtable = require('airtable');
+            var base = new Airtable({ apiKey: 'keyZss6qI3y5Lti99' }).base('appFQ0WoH5UsblMxd');
+
+            base('Projects').select({
+                    view: 'Active Projects',
+                    maxRecords: 100,
+                    sort: [{field: 'Title', direction: 'asc'}],
+                }).eachPage(function page(records, fetchNextPage) { // This function (`page`) will get called for each page of records.
+
+                    records.forEach(function(record) { 
+                        if (record.get('Title') != 'Lab Management') {
+                            
+                            console.log('Retrieved', record.get('Title')); 
+
+                            var $projectInfo = $('<div>');
+                            $projectInfo.append($('<h3>').text(record.get('Title')));
+
+                            var reportIDs = record.get('Reports');
+                            if(reportIDs) {
+                                var numReports = reportIDs.length
+                                console.log('reports for ' + record.get('Title') + ': ' + numReports);
+                                base('Reports').find(reportIDs[numReports - 1], function(err, record2) {
+                                    if(err) {report = 'no reports'}
+                                    var reportDate = record2.fields.Date;
+                                    var reportNeeds = record2.fields.Needs;
+                                    if(!reportNeeds) {reportNeeds = 'none'}
+                                    var report = record2.fields.Report;
+                                    $projectInfo.append($('<strong>').text(reportDate));
+                                    $projectInfo.append($('<p>').text('Reported Needs: ' + reportNeeds));
+                                    $projectInfo.append($('<p>').text(report));
+                                    console.log(report);
+                                })
+                            } else {$projectInfo.append($('<p>').text('no reports'))}
+
+                            $( ".main-content-wrapper" ).append($projectInfo);
+                        }    
+                    });
+
+                        //$(".main-content-wrapper").prepend($('<h4>').text('Total Cost of All Active Projects: ' + allProjectsCost.toFixed(2)))
+                        //$(".main-content-wrapper").prepend($('<h4>').text('Total Number of Students Involved: ' + allStudents))
+
+                        fetchNextPage();
+
+                    }, function done(err) {if (err) { console.error(err); return; } 
+                });
+                    
+                    
+
+
+        </script>
+
+    <!--/////////////////////////////////////////////////////////////////////////////////////////////////////////-->
+    <!--/////////////////////////////////////////////////////////////////////////////////////////////////////////-->
+
+    </body>
+</html>

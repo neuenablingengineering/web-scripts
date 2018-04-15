@@ -1,0 +1,97 @@
+<html>
+        <body>   
+        <div class="main-content-wrapper"></div>
+        <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
+        <script src="airtable.browser.js"></script>
+
+    <!--start here: https://www.w3schools.com/howto/howto_js_dropdown.asp -->
+    <!--and here for working around SquareSpace: https://www.w3schools.com/css/css_howto.asp -->
+    <!--and here for HTML only form: https://www.hscripts.com/tutorials/html/form-combobox.php -->
+    <!--/////////////////////////////////////////////////////////////////////////////////////////////////////////-->
+
+        <script> 
+
+            //new Airtable object
+            //authenticated using API key generated for the enablingengineering@gmail.com account on our Airtable team
+            //represents the "Projects" base, as indicated by the key in base().
+            var Airtable = require('airtable');
+            var base = new Airtable({ apiKey: 'keyZss6qI3y5Lti99' }).base('appFQ0WoH5UsblMxd');
+            var projects = [];
+            var $dropdown = $("<select id='projectSelection' onchange='getReports()'>")
+            $dropdown.append($("<option value='Select a Project...'>Select a Project...</option>"))
+
+            base('Projects').select({
+                    view: 'Active Projects',
+                    maxRecords: 100,
+                    sort: [{field: 'Title', direction: 'asc'}],
+                }).eachPage(function page(records, fetchNextPage) { // This function (`page`) will get called for each page of records.
+
+                    records.forEach(function(record) { 
+                        if (record.get('Title') != 'Lab Management') {
+                            
+                            console.log('Retrieved', record.get('Title')); 
+                            var newOption = "<option value='" + record.get('Title') + "'>" + record.get('Title');
+                            $dropdown.append(newOption);
+
+                            $( ".main-content-wrapper" ).append($dropdown);
+                        }    
+                    }); 
+                    
+                    fetchNextPage();
+
+                    }, function done(err) {if (err) {console.error(err); return;}});
+        </script>
+
+        <script>
+            function getReports() {
+                var title = document.getElementById("projectSelection").value;
+                console.log(title)
+
+                base('Projects').select({
+                    view: 'Active Projects',
+                    maxRecords: 100,
+                    sort: [{field: 'Title', direction: 'asc'}],
+                }).eachPage(function page(records, fetchNextPage) { // This function (`page`) will get called for each page of records.
+
+                    records.forEach(function(record) { 
+                        if (record.get('Title') == title) {
+                            
+                            console.log('Retrieved', record.get('Title')); 
+                            $('div').remove('.project');
+                            var $projectInfo = $("<div class='project' id='" + title + "'>");
+                            $projectInfo.append($('<h3>').text(record.get('Title')));
+
+                            var reportIDs = record.get('Reports')
+                            if (reportIDs) {reportIDs.reverse();}
+
+                            if(reportIDs) {
+                                var numReports = reportIDs.length
+                                console.log('reports for ' + record.get('Title') + ': ' + numReports);
+                                reportIDs.forEach(function(reportID) {
+                                    base('Reports').find(reportID, function(err, record2) {
+                                        var reportDate = record2.fields.Date;
+                                        var report = record2.fields.Report;
+                                        $projectInfo.append($("<strong>").text(reportDate));
+                                        $projectInfo.append($("<p>").text(report));
+                                        console.log(report);
+                                        $projectInfo.f
+                                    })
+                                })
+                            } else {$projectInfo.append($('<p>').text('no reports')); console.log('oops')}
+
+                            $( ".main-content-wrapper" ).append($projectInfo);
+                        } else {console.log('oops')}   
+                    }); 
+                    
+                    fetchNextPage();
+
+                    }, function done(err) {if (err) {console.error(err); return;}});
+            }
+                    
+        </script>
+
+    <!--/////////////////////////////////////////////////////////////////////////////////////////////////////////-->
+    <!--/////////////////////////////////////////////////////////////////////////////////////////////////////////-->
+
+    </body>
+</html>

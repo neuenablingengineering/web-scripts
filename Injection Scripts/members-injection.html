@@ -1,0 +1,73 @@
+<html>
+    <body>   
+        <div class="main-content-wrapper"></div>
+        <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
+        <!--<script src="https://d3js.org/d3.v4.min.js"></script>-->
+        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/numeric/1.2.6/numeric.min.js"></script>
+        <script src="airtable.browser.js"></script>
+
+    <!--/////////////////////////////////////////////////////////////////////////////////////////////////////////-->
+    <!--/////////////////////////////////////////////////////////////////////////////////////////////////////////-->
+
+        <script> 
+
+            //new Airtable object
+            //authenticated using API key generated for the enablingengineering@gmail.com account on our Airtable team
+            //represents the "Projects" base, as indicated by the key in base().
+            var Airtable = require('airtable');
+            var base = new Airtable({ apiKey: 'keyZss6qI3y5Lti99' }).base('appFQ0WoH5UsblMxd');
+
+            var timestamps = [];
+            var ogDates = [];
+
+            base('Students').select({
+                    view: 'Main View',
+                    fields: ['Date Created (GMT)', 'Created on'],
+                    sort: [{field: 'Date Created (GMT)', direction: 'asc'}],
+                }).eachPage(function page(records, fetchNextPage) { // This function (`page`) will get called for each page of records.
+
+                    records.forEach(function(record) { 
+                        
+                        ogDates.push(new Date(record.get('Created on')));
+                        timestamps.push(new Date(record.get('Date Created (GMT)')));
+
+                    });
+
+                        fetchNextPage();
+
+                    var data = [{
+                            x: timestamps,
+                            type: 'histogram',
+                            marker: {color: 'rgba(100,175,100,0.7)'}
+                    }];
+
+                    var $plot = $('<div id="myDiv">');
+                    $(".main-content-wrapper").append($plot);
+                    Plotly.newPlot('myDiv', data);
+                    $(".main-content-wrapper").append($plot);
+
+                    }, function done(err) {if (err) { console.error(err); return; } 
+
+                    timestamps.sort(function(a,b) {return a.getTime() - b.getTime()});
+                    ogDates.sort(function(a,b) {return a.getTime() - b.getTime()});
+                    ogDates.splice(0,221);
+
+                    for(var n=0; n < 492; n++) {
+                        timestamps[n] = ogDates[n];
+                        console.log('Replaced timestamp ' + n.toString() + 'with ' + ogDates[n].toString())
+                    }
+
+                    console.log(ogDates)
+                    console.log(timestamps)
+                    
+
+                });
+                    
+        </script>
+
+    <!--/////////////////////////////////////////////////////////////////////////////////////////////////////////-->
+    <!--/////////////////////////////////////////////////////////////////////////////////////////////////////////-->
+
+    </body>
+</html>
